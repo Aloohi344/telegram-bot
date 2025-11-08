@@ -14,6 +14,7 @@ async function checkSubscription(userId) {
     const member = await bot.getChatMember(CHANNEL_CHAT_ID, userId);
     return ['creator', 'administrator', 'member'].includes(member.status);
   } catch (error) {
+    console.log('Ошибка проверки подписки:', error);
     return false;
   }
 }
@@ -21,13 +22,15 @@ async function checkSubscription(userId) {
 // Функция для отправки файла
 async function sendResearchFile(chatId, userName) {
   try {
+    console.log(`Пытаюсь отправить файл для ${userName} в чат ${chatId}`);
+    
     // Сначала отправляем сообщение о загрузке
     const loadingMsg = await bot.sendMessage(chatId, 
       `📥 ${userName}, загружаю файл исследования...`
     );
 
-    // НОВАЯ ССЫЛКА НА СЖАТЫЙ ФАЙЛ
-    const fileUrl = 'https://raw.githubusercontent.com/Aloohi344/Telegram-bot/main/analytics_11_categories.pdf';
+    // ПРЯМАЯ ССЫЛКА НА ВАШ ФАЙЛ В GITHUB
+    const fileUrl = 'https://raw.githubusercontent.com/Aloohi344/telegram-bot/main/%D0%90%D0%BD%D0%B0%D0%BB%D0%B8%D1%82%D0%B8%D0%BA%D0%B0_11_%D0%BA%D0%B0%D1%82%D0%B5%D0%B3%D0%BE%D1%80%D0%B8%D0%B9_%D0%BD%D0%B0_%D0%BC%D0%B0%D1%80%D0%BA%D0%B5%D1%82%D0%BF%D0%BB%D0%B5%D0%B9%D1%81%D0%B0%D1%85.pdf';
     
     // Отправляем файл напрямую в чат
     await bot.sendDocument(chatId, fileUrl, {
@@ -44,22 +47,24 @@ async function sendResearchFile(chatId, userName) {
     await bot.sendMessage(chatId,
       `🎉 *${userName}, исследование успешно доставлено!*\n\n` +
       `📖 *Что внутри исследования:*\n` +
-      `• Анализ 11 ключевых категорий\n` +
+      `• Аналитика 11 ключевых категорий\n` +
       `• Тенденции рынка маркетплейсов\n` +
       `• Рекомендации по выбору ниши\n` +
       `• Стратегии роста продаж\n\n` +
-      `💡 *Рекомендация:* Сохраните файл для дальнейшего изучения!`,
+      `💡 *Рекомендация:* Изучите файл внимательно для принятия взвешенных решений!`,
       { parse_mode: 'Markdown' }
     );
 
-  } catch (error) {
-    console.log('Ошибка отправки файла:', error);
+    console.log('Файл успешно отправлен!');
     
-    // Запасной вариант - отправляем ссылку
+  } catch (error) {
+    console.log('ОШИБКА отправки файла:', error);
+    
+    // Запасной вариант
     await bot.sendMessage(chatId,
       `❌ ${userName}, не удалось отправить файл напрямую.\n\n` +
       `📎 *Скачайте исследование по ссылке:*\n` +
-      `https://github.com/Aloohi344/Telegram-bot/blob/main/analytics_11_categories.pdf\n\n` +
+      `https://raw.githubusercontent.com/Aloohi344/Telegram-bot/main/analytics_11_categories.pdf\n\n` +
       `💡 Нажмите "Download" для скачивания файла.`,
       { parse_mode: 'Markdown' }
     );
@@ -71,6 +76,8 @@ bot.onText(/\/start/, async (msg) => {
   const chatId = msg.chat.id;
   const userId = msg.from.id;
   const userName = msg.from.first_name || 'Пользователь';
+
+  console.log(`Обработка /start от ${userName} (${userId})`);
 
   try {
     if (await checkSubscription(userId)) {
@@ -95,6 +102,7 @@ bot.onText(/\/start/, async (msg) => {
       );
     }
   } catch (error) {
+    console.log('Ошибка:', error);
     await bot.sendMessage(chatId, '❌ Произошла ошибка, попробуйте позже');
   }
 });
@@ -104,6 +112,8 @@ bot.on('callback_query', async (query) => {
   const userId = query.from.id;
   const userName = query.from.first_name || 'Пользователь';
   const chatId = query.message.chat.id;
+
+  console.log(`Обработка кнопки от ${userName} (${userId})`);
 
   if (query.data === 'check_sub') {
     try {
@@ -128,6 +138,7 @@ bot.on('callback_query', async (query) => {
         });
       }
     } catch (error) {
+      console.log('Ошибка обработки кнопки:', error);
       await bot.answerCallbackQuery(query.id, {
         text: '❌ Произошла ошибка, попробуйте позже',
         show_alert: true

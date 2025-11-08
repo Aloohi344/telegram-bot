@@ -11,10 +11,12 @@ const PORT = process.env.PORT || 3000;
 // Простая проверка подписки
 async function checkSubscription(userId) {
   try {
+    console.log(`🔍 Проверяем подписку пользователя ${userId}`);
     const member = await bot.getChatMember(CHANNEL_CHAT_ID, userId);
+    console.log(`📊 Статус пользователя: ${member.status}`);
     return ['creator', 'administrator', 'member'].includes(member.status);
   } catch (error) {
-    console.log('Ошибка проверки подписки:', error);
+    console.log('❌ Ошибка проверки подписки:', error);
     return false;
   }
 }
@@ -22,15 +24,18 @@ async function checkSubscription(userId) {
 // Функция для отправки файла
 async function sendResearchFile(chatId, userName) {
   try {
-    console.log(`Пытаюсь отправить файл для ${userName} в чат ${chatId}`);
+    console.log(`🚀 Начинаем отправку файла для ${userName} в чат ${chatId}`);
     
     // Сначала отправляем сообщение о загрузке
+    console.log(`📨 Отправляем сообщение о загрузке...`);
     const loadingMsg = await bot.sendMessage(chatId, 
       `📥 ${userName}, загружаю файл исследования...`
     );
 
     // ПРЯМАЯ ССЫЛКА НА ВАШ ФАЙЛ В GITHUB
     const fileUrl = 'https://raw.githubusercontent.com/Aloohi344/telegram-bot/main/%D0%90%D0%BD%D0%B0%D0%BB%D0%B8%D1%82%D0%B8%D0%BA%D0%B0_11_%D0%BA%D0%B0%D1%82%D0%B5%D0%B3%D0%BE%D1%80%D0%B8%D0%B9_%D0%BD%D0%B0_%D0%BC%D0%B0%D1%80%D0%BA%D0%B5%D1%82%D0%BF%D0%BB%D0%B5%D0%B9%D1%81%D0%B0%D1%85.pdf';
+    
+    console.log(`📎 Пытаемся отправить файл по ссылке: ${fileUrl}`);
     
     // Отправляем файл напрямую в чат
     await bot.sendDocument(chatId, fileUrl, {
@@ -40,29 +45,27 @@ async function sendResearchFile(chatId, userName) {
       parse_mode: 'Markdown'
     });
 
+    console.log(`✅ Файл отправлен успешно!`);
+    
     // Удаляем сообщение о загрузке
     await bot.deleteMessage(chatId, loadingMsg.message_id);
+    console.log(`🗑️ Сообщение о загрузке удалено`);
 
     // Отправляем завершающее сообщение
     await bot.sendMessage(chatId,
-      `🎉 *${userName}, исследование успешно доставлено!*\n\n` +
-      `📖 *Что внутри исследования:*\n` +
-      `• Аналитика 11 ключевых категорий\n` +
-      `• Тенденции рынка маркетплейсов\n` +
-      `• Рекомендации по выбору ниши\n` +
-      `• Стратегии роста продаж\n\n` +
-      `💡 *Рекомендация:* Изучите файл внимательно для принятия взвешенных решений!`,
+      `🎉 *${userName}, исследование успешно доставлено!*`,
       { parse_mode: 'Markdown' }
     );
 
-    console.log('Файл успешно отправлен!');
+    console.log(`🎯 Процесс отправки файла завершен!`);
     
   } catch (error) {
-    console.log('ОШИБКА отправки файла:', error);
+    console.log('❌ ОШИБКА отправки файла:', error.message);
+    console.log('🔍 Детали ошибки:', error);
     
     // Запасной вариант
     await bot.sendMessage(chatId,
-      `❌ ${userName}, не удалось отправить файл напрямую.\n\n` +
+      `❌ ${userName}, не удалось отправить файл.\n\n` +
       `📎 *Скачайте исследование по ссылке:*\n` +
       `https://github.com/Aloohi344/telegram-bot/blob/main/%D0%90%D0%BD%D0%B0%D0%BB%D0%B8%D1%82%D0%B8%D0%BA%D0%B0_11_%D0%BA%D0%B0%D1%82%D0%B5%D0%B3%D0%BE%D1%80%D0%B8%D0%B9_%D0%BD%D0%B0_%D0%BC%D0%B0%D1%80%D0%BA%D0%B5%D1%82%D0%BF%D0%BB%D0%B5%D0%B9%D1%81%D0%B0%D1%85.pdf\n\n` +
       `💡 Нажмите "Download" для скачивания файла.`,
@@ -77,14 +80,20 @@ bot.onText(/\/start/, async (msg) => {
   const userId = msg.from.id;
   const userName = msg.from.first_name || 'Пользователь';
 
-  console.log(`Обработка /start от ${userName} (${userId})`);
+  console.log(`\n=== НОВЫЙ ЗАПРОС /start ===`);
+  console.log(`👤 Пользователь: ${userName} (${userId})`);
+  console.log(`💬 Чат: ${chatId}`);
 
   try {
-    if (await checkSubscription(userId)) {
+    const isSubscribed = await checkSubscription(userId);
+    console.log(`📊 Результат проверки подписки: ${isSubscribed}`);
+    
+    if (isSubscribed) {
+      console.log(`✅ Пользователь подписан, отправляем файл...`);
       // Отправляем файл исследования
       await sendResearchFile(chatId, userName);
-      
     } else {
+      console.log(`❌ Пользователь НЕ подписан, показываем кнопки...`);
       const keyboard = {
         inline_keyboard: [
           [{ text: '📢 ПОДПИСАТЬСЯ НА КАНАЛ', url: 'https://t.me/uleymp' }],
@@ -93,16 +102,12 @@ bot.onText(/\/start/, async (msg) => {
       };
       
       await bot.sendMessage(chatId, 
-        `⚠️ Привет, ${userName}! Для получения доступа к исследованию необходимо подписаться на канал @uleymp\n\n` +
-        `*После подписки вы получите:*\n` +
-        `📊 Аналитику 11 категорий маркетплейсов\n` +
-        `📈 Данные по трендам рынка\n` +
-        `💡 Рекомендации по выбору ниши`,
-        { reply_markup: keyboard, parse_mode: 'Markdown' }
+        `⚠️ Для доступа подпишитесь на канал @uleymp`,
+        { reply_markup: keyboard }
       );
     }
   } catch (error) {
-    console.log('Ошибка:', error);
+    console.log('💥 ОШИБКА в /start:', error);
     await bot.sendMessage(chatId, '❌ Произошла ошибка, попробуйте позже');
   }
 });
@@ -113,36 +118,32 @@ bot.on('callback_query', async (query) => {
   const userName = query.from.first_name || 'Пользователь';
   const chatId = query.message.chat.id;
 
-  console.log(`Обработка кнопки от ${userName} (${userId})`);
+  console.log(`\n=== ОБРАБОТКА КНОПКИ ===`);
+  console.log(`👤 Пользователь: ${userName} (${userId})`);
 
   if (query.data === 'check_sub') {
     try {
-      if (await checkSubscription(userId)) {
+      const isSubscribed = await checkSubscription(userId);
+      console.log(`📊 Результат проверки по кнопке: ${isSubscribed}`);
+      
+      if (isSubscribed) {
+        console.log(`✅ Подписка подтверждена, отправляем файл...`);
         await bot.editMessageText(
-          `✅ Отлично, ${userName}! Вы подписаны на канал!\n\n` +
-          `📥 *Загружаем файл исследования...*`,
-          {
-            chat_id: chatId,
-            message_id: query.message.message_id,
-            parse_mode: 'Markdown'
-          }
+          `✅ Отлично! Отправляю файл...`,
+          { chat_id: chatId, message_id: query.message.message_id }
         );
 
-        // Отправляем файл исследования
         await sendResearchFile(chatId, userName);
 
       } else {
+        console.log(`❌ Пользователь все еще не подписан`);
         await bot.answerCallbackQuery(query.id, {
-          text: `❌ ${userName}, вы еще не подписаны на канал! Подпишитесь и попробуйте снова.`,
+          text: `❌ Вы еще не подписаны!`,
           show_alert: true
         });
       }
     } catch (error) {
-      console.log('Ошибка обработки кнопки:', error);
-      await bot.answerCallbackQuery(query.id, {
-        text: '❌ Произошла ошибка, попробуйте позже',
-        show_alert: true
-      });
+      console.log('💥 ОШИБКА обработки кнопки:', error);
     }
   }
 });
